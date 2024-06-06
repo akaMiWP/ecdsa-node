@@ -10,9 +10,9 @@ app.use(cors());
 app.use(express.json());
 
 const balances = {
-  "0349cf98cda5c2fd53ee85db49c723aff7fde5746607a0169eb195b29c68c19aed": 100,
-  "024fd7c406e74fa303f86b0eab7f51dc087e5e4dd5fb9c3d20d47a39b560f9167a": 50,
-  "035ff0e531f08fcb79ebcd37caa3b376846b4b1035c8b11a027ef7a90d08be13b2": 75,
+  "023c04cc85bc9238308500c17ca766237ea79f70742fb35a50529e2389d1630d77": 100,
+  "034e895ea482fda840541d406f50d5972adb438128557fe9ccbf67f0a44abd158e": 50,
+  "029e0789ab9e1d2602562909b75eebbd6ff7ddaaf3f66f984b003efe6153c83366": 75,
 };
 
 app.get("/balance/:address", (req, res) => {
@@ -21,10 +21,7 @@ app.get("/balance/:address", (req, res) => {
   res.send({ balance });
 });
 
-// 1) make use of signature to recover public key
-// 2) check if balance belong to this public key has enough balance
 app.post("/send", (req, res) => {
-  console.log(req.body);
   const parsedBody = JSON.parse(JSON.stringify(req.body), reviver);
   const { recipient, amount } = parsedBody;
 
@@ -32,15 +29,12 @@ app.post("/send", (req, res) => {
     BigInt(parsedBody.signature.r),
     BigInt(parsedBody.signature.s)
   );
-  signature.addRecoveryBit(1);
-
+  signature = signature.addRecoveryBit(parsedBody.signature.recovery);
   const amountInString = amount.toString();
   const data = utf8ToBytes(amountInString);
   const hashMessage = keccak256(data);
-  const hex = toHex(hashMessage);
-  console.log(hex);
-  const sender = toHex(signature.recoverPublicKey(hex));
-  console.log(sender);
+  const publicKey = signature.recoverPublicKey(hashMessage);
+  const sender = publicKey.toHex();
 
   setInitialBalance(sender);
   setInitialBalance(recipient);
